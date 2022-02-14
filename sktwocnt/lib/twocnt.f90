@@ -25,6 +25,8 @@ module twocnt
       & XC_LDA_C_PW, XC_GGA_X_PBE, XC_GGA_C_PBE, XC_GGA_X_B88, XC_GGA_C_LYP, XC_GGA_X_SFAT_PBE,&
       & XC_UNPOLARIZED, xc_f03_func_set_ext_params
 
+  use omp_lib
+
   implicit none
   private
 
@@ -204,9 +206,6 @@ contains
     type(xc_f03_func_t) :: xcfunc_x, xcfunc_c
     type(xc_f03_func_info_t) :: xcinfo
 
-    !! Becke integrator instances
-    type(becke_integrator) :: t_integ
-
     !! grid characteristics
     type(becke_grid_params) :: grid_params
 
@@ -247,23 +246,6 @@ contains
       grid_params%N_angular = inp%nangular
       grid_params%ll_max = inp%ll_max
       grid_params%rm = inp%rm
-
-      ! inititalize the becke_integrator
-      call integrator_init(t_integ, grid_params)
-      t_integ%verbosity = 0
-
-      call integrator_set_kernel_param(t_integ, 0.1e-16_dp)
-      call integrator_precomp_fdmat(t_integ)
-      call integrator_build_LU(t_integ)
-
-      !== Note: this is a workaround! ==
-      ! we generate the LU decomposition for \kappa \approx 0 and copy the LU decomposition into H4
-      ! and permutation matrix into ipiv4
-      t_integ%fdmat%H4 = t_integ%fdmat%H3
-      t_integ%fdmat%ipiv4 = t_integ%fdmat%ipiv2
-      call integrator_set_kernel_param(t_integ, inp%kappa)
-      call integrator_precomp_fdmat(t_integ)
-      call integrator_build_LU(t_integ)
     end if
 
     call gauss_legendre_quadrature(inp%ninteg1, quads(1))
@@ -296,16 +278,21 @@ contains
       allocate(skoverbuffer(imap%ninteg, nBatchline))
       write(*, "(A,I0,A,F6.3,A,F6.3)") "Calculating ", nBatchline, " lines: r0 = ",&
           & inp%r0 + inp%dr * real(nBatch * nBatchline, dp), " dr = ", inp%dr
+      !$omp parallel do default(none)&
+      !$omp& shared(inp, quads, beckepars, nBatch, nBatchline, atom1, atom2, imap, xcfunc_x,&
+      !$omp& xcfunc_c, skhambuffer, skoverbuffer, denserr, grid_params)&
+      !$omp& private(ir, dist, grid1, grid2, dots, weights, nRad, nAng)
       lpDist: do ir = 1, nBatchline
         dist = inp%r0 + inp%dr * real(nBatch * nBatchline + ir - 1, dp)
         call gengrid2_2(quads, coordtrans_becke_12, partition_becke_homo, beckepars, dist, grid1,&
             & grid2, dots, weights)
         nRad = size(quads(1)%xx)
         nAng = size(quads(2)%xx)
-        call getskintegrals(t_integ, nRad, nAng, atom1, atom2, grid1, grid2, dots, weights,&
+        call getskintegrals(grid_params, nRad, nAng, atom1, atom2, grid1, grid2, dots, weights,&
             & inp%kappa, inp%tDensitySuperpos, inp%iXC, inp%tXchyb, imap, xcfunc_x, xcfunc_c,&
             & skhambuffer(:, ir), skoverbuffer(:, ir), denserr(ir))
       end do lpDist
+      !$omp end parallel do
       denserrmax = max(denserrmax, maxval(denserr))
       maxabs = max(maxval(abs(skhambuffer)), maxval(abs(skoverbuffer)))
       if (tDynlen) then
@@ -341,11 +328,11 @@ contains
 
 
   !> Calculates SK-integrals.
-  subroutine getskintegrals(t_integ, nRad, nAng, atom1, atom2, grid1, grid2, dots, weights, kappa,&
-      & tDensitySuperpos, iXC, tXchyb, imap, xcfunc_x, xcfunc_c, skham, skover, denserr)
+  subroutine getskintegrals(grid_params, nRad, nAng, atom1, atom2, grid1, grid2, dots, weights,&
+      & kappa, tDensitySuperpos, iXC, tXchyb, imap, xcfunc_x, xcfunc_c, skham, skover, denserr)
 
-    !> Becke integrator instances
-    type(becke_integrator), intent(inout) :: t_integ
+    !! grid characteristics
+    type(becke_grid_params), intent(in) :: grid_params
 
     !> number of radial and angular integration abscissas
     integer, intent(in) :: nRad, nAng
@@ -386,6 +373,9 @@ contains
 
     !> relative density integration error
     real(dp), intent(out) :: denserr
+
+    !! Becke integrator instances
+    type(becke_integrator) :: t_integ
 
     !! instance of real tesseral spherical harmonics
     type(TRealTessY) :: tes1, tes2
@@ -437,6 +427,27 @@ contains
     real(dp), allocatable :: rhor(:), sigma(:), vxsigma(:), vcsigma(:)
     real(dp), allocatable :: divvx(:), divvc(:)
 
+    ! OMP workaround for now
+    if (tXchyb) then
+
+      ! inititalize the becke_integrator
+      call integrator_init(t_integ, grid_params)
+      t_integ%verbosity = 0
+
+      call integrator_set_kernel_param(t_integ, 0.1e-16_dp)
+      call integrator_precomp_fdmat(t_integ)
+      call integrator_build_LU(t_integ)
+
+      !== Note: this is a workaround! ==
+      ! we generate the LU decomposition for \kappa \approx 0 and copy the LU decomposition into
+      ! H4 and permutation matrix into ipiv4
+      t_integ%fdmat%H4 = t_integ%fdmat%H3
+      t_integ%fdmat%ipiv4 = t_integ%fdmat%ipiv2
+      call integrator_set_kernel_param(t_integ, kappa)
+      call integrator_precomp_fdmat(t_integ)
+      call integrator_build_LU(t_integ)
+    end if
+
     r1 => grid1(:, 1)
     theta1 => grid1(:, 2)
     r2 => grid2(:, 1)
@@ -479,7 +490,7 @@ contains
         allocate(vcsigma(nGrid))
         densval1p = atom1%drho%getValue(r1)
         densval2p = atom2%drho%getValue(r2)
-        ! care about correct 4pi normalization of density and compute sigma
+        ! compute libXC's sigma
         sigma = getLibxcSigma(densval, densval1p, densval2p, r1, r2, dots)
       end if
 
