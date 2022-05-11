@@ -43,7 +43,6 @@ def main():
             formstr = '{:13.5f}' * ndim + '\n'
             for line in spinw:
                 fp.write(formstr.format(*line))
-                fp.write('\n')
 
     logger.info("File '{}' written.".format(SPINW_FILE_NAME))
 
