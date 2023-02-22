@@ -45,7 +45,20 @@ program HFAtom
   !! holds parameters, defining a Becke integration grid
   type(TBeckeGridParams) :: grid_params
 
+  block
+    use iso_fortran_env, only : stdOut => output_unit
+    write(stdOut, *) '################Before cmd line parsing###########'
+    flush(stdOut)
+  end block
+
   call parse_command_arguments()
+
+  block
+    use iso_fortran_env, only : stdOut => output_unit
+    write(stdOut, *) '################After cmd line parsing###########'
+    flush(stdOut)
+  end block
+
   call read_input_1(nuc, max_l, occ_shells, maxiter, poly_order, min_alpha, max_alpha, num_alpha,&
       & tAutoAlphas, alpha, conf_r0, conf_power, num_occ, num_power, num_alphas, xcnr,&
       & tPrintEigvecs, tZora, tBroyden, mixing_factor, xalpha_const, omega, camAlpha, camBeta,&
