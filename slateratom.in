@@ -1,0 +1,26 @@
+6 1 120 .false. 	# znuc maxang nscc relativistic
+6 	# functional
+0.33 	# range-separation parameter (omega)
+2000 194 11 1.0 	# Becke integrator settings
+1e+30 0 	# Compr. radius and power (s)
+1e+30 0 	# Compr. radius and power (p)
+2 	# nr. of occupied shells (s)
+1 	# nr. of occupied shells (p)
+4 3 	# nr. of exponents, max. power (s)
+4 3 	# nr. of exponents, max. power (p)
+.false. 	# automatic exponent generation
+  0.500000 	# exponent 1 (s)
+  1.140000 	# exponent 2 (s)
+  2.620000 	# exponent 3 (s)
+  6.000000 	# exponent 4 (s)
+  0.500000 	# exponent 1 (p)
+  1.140000 	# exponent 2 (p)
+  2.620000 	# exponent 3 (p)
+  6.000000 	# exponent 4 (p)
+.false. 	# write eigenvectors
+.true. 0.1 	# broyden mixer, mixing factor
+1 1 	# occupations (1s)
+1 1 	# occupations (2s)
+1 1 	# occupations (2p)
+1 2 	# occupied shells from to (s)
+1 2 	# occupied shells from to (p)
