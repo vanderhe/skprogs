@@ -1,6 +1,11 @@
+include(CMakePrintHelpers)
 set(builddir ${CMAKE_CURRENT_BINARY_DIR})
 set(srcdir ${CMAKE_CURRENT_SOURCE_DIR})
-file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../" projectdir)
+set(projectdir ${PROJECT_SOURCE_DIR})
+
+cmake_print_variables(CMAKE_CURRENT_BINARY_DIR)
+cmake_print_variables(CMAKE_CURRENT_SOURCE_DIR)
+cmake_print_variables(PROJECT_SOURCE_DIR)
 
 # execute_process is verbatim, therefore ";" must be replaced with " "
 string(REGEX REPLACE ";" " " releasename "${RELEASE}")
@@ -28,6 +33,7 @@ foreach(line IN LISTS sktable_tests_raw)
 endforeach()
 
 foreach(test IN LISTS tests)
+  cmake_print_variables(test)
   add_test(
     NAME sktable_${test}
     COMMAND ${PYTHON_INTERPRETER} ${srcdir}/bin/testwithworkdir ${test} ${builddir}

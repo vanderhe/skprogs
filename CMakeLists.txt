@@ -90,6 +90,6 @@ configure_file(
   ${CMAKE_CURRENT_BINARY_DIR}/skprogs-activate.sh
   @ONLY)
 
-install(
-  PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/skprogs-activate.sh"
-  DESTINATION "${CMAKE_INSTALL_BINDIR}/")
+# install(
+#   PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/skprogs-activate.sh"
+#   DESTINATION "${CMAKE_INSTALL_BINDIR}/")

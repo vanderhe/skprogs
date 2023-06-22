@@ -41,16 +41,26 @@ def main(cmdlineargs=None):
 
     '''
 
+    print('#1')
+
     args = parse_cmdline_args(cmdlineargs)
+
+    print('#2')
 
     copy_tree(os.path.join(args.templateroot, args.test),
               os.path.join(args.workdir, args.test))
 
+    print('#3')
+
     cwd = os.path.join(args.workdir, args.test)
+
+    print('#4')
 
     # get sktable configuration
     with open(os.path.join(cwd, 'config'), 'r') as fd:
         config = fd.readline()
+
+    print('#5')
 
     cmd = 'python3 ' \
         + os.path.abspath('../../../../sktools/src/sktools/scripts/skgen.py') \
@@ -62,30 +72,43 @@ def main(cmdlineargs=None):
             os.path.abspath('../../../sktwocnt/prog/sktwocnt')) \
         + 'sktable ' + config
 
+    print('#6')
+
     # remove _build folder and old files if present
     shutil.rmtree(os.path.join(cwd, '_build'), ignore_errors=True)
+    print('#7')
     for fname in os.listdir(cwd):
         if not fname.startswith('_') and fname.endswith('.skf'):
             os.remove(os.path.join(cwd, fname))
 
+    print('#8')
+
     # set environment variables
     env = os.environ.copy()
+    print('#9')
     path = os.path.abspath('../../../../sktools/src/') + os.pathsep \
         + os.path.abspath('../../../../sktools/src/sktools/')
+    print('#10')
     try:
         env['PYTHONPATH'] = path + os.pathsep + env['PYTHONPATH']
     except KeyError:
         env['PYTHONPATH'] = path
+    print('#11')
 
     # run skgen/sktable
     subprocess.call(cmd, cwd=cwd, env=env, shell=True)
+    print('#12')
 
     test = twd.TestWithWorkDir(os.path.join(args.workdir, args.test))
+    print('#13')
     passed = test.test()
+    print('#14')
 
     if not passed:
         msg = "Regression test '" + str(args.test) + "' did not pass."
         raise TestWithWorkDirError(msg)
+
+    print('#15')
 
 
 def parse_cmdline_args(cmdlineargs=None):
